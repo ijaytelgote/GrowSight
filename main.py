@@ -249,12 +249,6 @@ app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 tool = Tool()
 
-# Define layout for default page
-default_layout = html.Div([
-    tool.layout()
-])
-
-
 
 
 # Store user queries and outputs
