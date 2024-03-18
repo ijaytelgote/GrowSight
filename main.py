@@ -393,13 +393,7 @@ customer_seg_layout = html.Div([
     ])
 ])
 
-# Define layout for default path
-default_layout = html.Div([
-    html.H1("Default Line Plot"),
-    html.Div([
-        dcc.Graph(id='line-plot', figure={})  # Default empty figure
-    ])
-])
+
 
 # Define callback to update scatter plot
 @app.callback(
