@@ -1,10 +1,14 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+import pandas as pd
+import dash
+import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from dash import dcc, html
 from dash.dependencies import Input, Output
-import pandas as pd
+from faker import Faker
+
 from GeneratedData import generate_fake_data
 
 class VisualizationDashboard:
