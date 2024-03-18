@@ -7,6 +7,11 @@ from textblob import TextBlob
 from deep_translator import GoogleTranslator
 import string
 
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+
+
 import os
 import random
 import tabulate
@@ -249,6 +254,90 @@ app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 tool = Tool()
 
+class AiFeatures:
+    @staticmethod
+    def update_graph():
+        # Generate fake data
+        df = AiFeatures.generate_fake_data()
+
+        # Select relevant features for clustering
+        X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
+                'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
+                'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
+
+        # Scale the features
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # Fit KMeans clustering algorithm
+        k = 3  # Number of clusters
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        df['Cluster'] = kmeans.fit_predict(X_scaled)
+
+        # Map clusters to meaningful categories
+        cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
+        df['Cluster'] = df['Cluster'].map(cluster_mapping)
+
+        # Visualize in 3D scatter plot
+        fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
+                             color='Cluster', symbol='Cluster', opacity=0.7,
+                             hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
+        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+
+        return fig
+
+
+
+
+
+
+
+
+segment_layout = html.Div([
+    html.H1("Customer Segmentation Dashboard"),
+    html.Div([
+        dcc.Graph(id='scatter-plot'),
+    ]),
+])
+
+@app.callback(
+    Output('scatter-plot', 'figure'),
+    [Input('scatter-plot', 'id')]
+)
+def update_graph(_):
+    df = dashboard.data
+    X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
+            'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
+            'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
+
+    # Scale the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Fit KMeans clustering algorithm
+    k = 3  # Number of clusters
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    df['Cluster'] = kmeans.fit_predict(X_scaled)
+
+    # Map clusters to meaningful categories
+    cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
+
+    df['Cluster'] = df['Cluster'].map(cluster_mapping)
+
+    # Visualize in 3D scatter plot
+    fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
+                         color='Cluster', symbol='Cluster', opacity=0.7,
+                         hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+
+    return fig
+
+
+
+
+
+
+
 
 
 # Store user queries and outputs
@@ -287,9 +376,60 @@ default_layout = html.Div([
     Output('page-content', 'children'),
     [Input('url', 'pathname')]
 )
+
+
+
+
+
+
+
+
+
+# Define layout for customer_seg path
+customer_seg_layout = html.Div([
+    html.H1("Customer Segmentation Dashboard"),
+    html.Div([
+        dcc.Graph(id='scatter-plot')
+    ])
+])
+
+# Define layout for default path
+default_layout = html.Div([
+    html.H1("Default Line Plot"),
+    html.Div([
+        dcc.Graph(id='line-plot', figure={})  # Default empty figure
+    ])
+])
+
+# Define callback to update scatter plot
+@app.callback(
+    Output('scatter-plot', 'figure'),
+    [Input('scatter-plot', 'id')]
+)
+def update_scatter_plot(_):
+    return AiFeatures.update_graph()
+
+# Define callback to update line plot for default path
+
+
+# Define the app layout
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+    html.Div(id='page-content')
+])
+
+# Update page content based on the URL
+@app.callback(
+    Output('page-content', 'children'),
+    [Input('url', 'pathname')]
+)
+
+
 def display_page(pathname):
     if pathname == '/tools':
         return tool.layout()
+    elif pathname=='customer_seg':
+        return customer_seg_layout
     elif pathname == '/talk_to_data':
         return smartdata_layout
     else:
@@ -301,43 +441,8 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
-'''# Define function for sentiment analysis using TextBlob
-def perform_sentiment_analysis(text):
-    analysis = TextBlob(text)
-    # Get polarity of the text, which ranges from -1 to 1
-    polarity = analysis.sentiment.polarity
-    # Classify polarity as positive, negative, or neutral
-    if polarity > 0:
-        return 'Positive'
-    elif polarity < 0:
-        return 'Negative'
-    else:
-        return 'Neutral'
 
-# Define callback to update sentiment analysis results
-@app.callback(
-    [Output('output-sentiment', 'children'),
-     Output('sentiment-pie-chart', 'figure')],
-    [Input('analyze-button', 'n_clicks')],
-    [dash.dependencies.State('input-text', 'value')]
-)'''
-'''
-def update_sentiment_analysis(n_clicks, input_text):
-    if n_clicks == 0:
-        return '', {}
-    else:
-        sentiment = perform_sentiment_analysis(input_text)
-        sentiment_counts = {'Positive': 0, 'Negative': 0, 'Neutral': 0}
-        sentiment_counts[sentiment] += 1
 
-        # Create pie chart
-        labels = list(sentiment_counts.keys())
-        values = list(sentiment_counts.values())
-
-        fig = go.Figure(data=[go.Pie(labels=labels, values=values)])
-        fig.update_layout(title='Sentiment Distribution')
-        
-        return f'Sentiment: {sentiment}', fig'''
 
 # Instantiate OpenAI language model
 
