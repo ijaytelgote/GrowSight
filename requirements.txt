@@ -27,4 +27,3 @@ langchain
 
 nltk
 deep_translator
-string
