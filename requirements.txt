@@ -24,3 +24,7 @@ pandas==1.5.3
 langchain_experimental
 langchain-openai
 langchain
+
+nltk
+deep_translator
+string
