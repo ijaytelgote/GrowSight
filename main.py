@@ -1,17 +1,22 @@
+import os
 import random
-
+import tabulate
 import dash
+import duckdb
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import dcc, html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from faker import Faker
-from GeneratedData import DataGenerator
+from langchain.agents.agent_types import AgentType
+from langchain_experimental.agents.agent_toolkits import \
+    create_pandas_dataframe_agent
+from langchain_openai import ChatOpenAI, OpenAI
+
 
 fake = Faker()
-
 
 class VisualizationDashboard:
     def __init__(self):
@@ -72,15 +77,13 @@ class VisualizationDashboard:
         return html.Div([
             dcc.Dropdown(
                 id='time-dropdown-x',
-                options=[{'label': col, 'value': col} for col in ['Last Email Sent Date', 'Last Interaction Date',
-                                                                  'Last Phone Call Date', 'Last Meeting Date']],
+                options=[{'label': col, 'value': col} for col in ['Last Email Sent Date','Last Interaction Date','Last Phone Call Date','Last Meeting Date']],
                 value='Last Email Sent Date',
                 style={'width': '48%', 'display': 'inline-block'}
             ),
             dcc.Dropdown(
                 id='time-dropdown-y',
-                options=[{'label': col, 'value': col} for col in ['Monthly Revenue', 'Opportunity Amount',
-                                                                  'Probability of Close']],
+                options=[{'label': col, 'value': col} for col in ['Monthly Revenue','Opportunity Amount','Probability of Close']],
                 value='Opportunity Amount',
                 style={'width': '48%', 'float': 'right', 'display': 'inline-block'}
             ),
@@ -138,7 +141,7 @@ class VisualizationDashboard:
                 html.Label("Select Data Column:"),
                 dcc.Dropdown(
                     id='hist-dropdown-column',
-                    options=[{'label': col, 'value': col} for col in self.data.columns],
+                    options=[{'label': col, 'value': col} for col in self.data.keys()],
                     value='Lead Score'
                 ),
                 dcc.Graph(id='histogram',
@@ -160,6 +163,31 @@ class VisualizationDashboard:
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 
+# Define layout for sentiment analysis page
+'''
+# Define layout for sentiment analysis page
+sentiment_layout = html.Div([
+    html.H1("Sentiment Analysis", style={'text-align': 'center', 'margin-bottom': '30px'}),
+    html.Div([
+        dcc.Textarea(id='input-text', placeholder='Enter text...', style={'width': '60%', 'height': '200px', 'margin': 'auto', 'display': 'block'}),
+        html.Button('Analyze', id='analyze-button', n_clicks=0, style={'margin-top': '20px', 'margin-bottom': '20px'}),
+        html.Div(id='output-sentiment', style={'text-align': 'center'})
+    ], style={'text-align': 'center', 'margin': 'auto', 'margin-top': '50px'}),
+    dcc.Graph(id='sentiment-pie-chart', style={'width': '60%', 'margin': 'auto', 'margin-top': '50px', 'display': 'none'})
+])
+'''
+
+# Store user queries and outputs
+user_queries = []
+
+# Define layout
+smartdata_layout = html.Div(children=[
+    html.H1("SmartDataFrame Chat", style={'textAlign': 'center', 'fontSize': 36, 'marginBottom': 30, 'color': '#333'}),
+    dcc.Input(id='user-input', type='text', placeholder='Enter your query...', style={'width': '100%', 'padding': '15px', 'fontSize': '18px', 'marginBottom': '20px', 'borderRadius': '8px', 'border': '1px solid #ccc', 'outline': 'none'}),
+    html.Button('Analyse', id='analyse-button', n_clicks=0, style={'backgroundColor': '#4CAF50', 'border': 'none', 'color': 'white', 'padding': '15px 32px', 'textAlign': 'center', 'textDecoration': 'none', 'display': 'inline-block', 'fontSize': '16px', 'marginBottom': '20px', 'cursor': 'pointer', 'borderRadius': '8px'}),
+    html.Button('Refresh', id='refresh-button', n_clicks=0, style={'backgroundColor': '#008CBA', 'border': 'none', 'color': 'white', 'padding': '15px 32px', 'textAlign': 'center', 'textDecoration': 'none', 'display': 'inline-block', 'fontSize': '16px', 'marginBottom': '20px', 'marginLeft': '10px', 'cursor': 'pointer', 'borderRadius': '8px'}),
+    html.Div(id='output-container', style={'width': '100%', 'padding': '15px', 'fontSize': '16px', 'marginBottom': '20px', 'borderRadius': '8px', 'border': '1px solid #ccc', 'outline': 'none', 'height': '200px', 'overflowY': 'scroll'})
+])
 # Define layout for default page
 default_layout = html.Div([
     dashboard.create_scatter_layout(),
@@ -174,6 +202,96 @@ default_layout = html.Div([
     html.Hr(),
     dashboard.create_histogram_layout()
 ])
+
+# Define callback to update layout based on path
+@app.callback(
+    Output('page-content', 'children'),
+    [Input('url', 'pathname')]
+)
+def display_page(pathname):
+    if pathname == '/sentiment':
+        return None
+    elif pathname == '/talk_to_data':
+        return smartdata_layout
+    else:
+        return default_layout
+
+# Define the main app layout
+app.layout = html.Div([
+    dcc.Location(id='url', refresh=False),
+    html.Div(id='page-content')
+])
+
+'''# Define function for sentiment analysis using TextBlob
+def perform_sentiment_analysis(text):
+    analysis = TextBlob(text)
+    # Get polarity of the text, which ranges from -1 to 1
+    polarity = analysis.sentiment.polarity
+    # Classify polarity as positive, negative, or neutral
+    if polarity > 0:
+        return 'Positive'
+    elif polarity < 0:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+# Define callback to update sentiment analysis results
+@app.callback(
+    [Output('output-sentiment', 'children'),
+     Output('sentiment-pie-chart', 'figure')],
+    [Input('analyze-button', 'n_clicks')],
+    [dash.dependencies.State('input-text', 'value')]
+)'''
+'''
+def update_sentiment_analysis(n_clicks, input_text):
+    if n_clicks == 0:
+        return '', {}
+    else:
+        sentiment = perform_sentiment_analysis(input_text)
+        sentiment_counts = {'Positive': 0, 'Negative': 0, 'Neutral': 0}
+        sentiment_counts[sentiment] += 1
+
+        # Create pie chart
+        labels = list(sentiment_counts.keys())
+        values = list(sentiment_counts.values())
+
+        fig = go.Figure(data=[go.Pie(labels=labels, values=values)])
+        fig.update_layout(title='Sentiment Distribution')
+        
+        return f'Sentiment: {sentiment}', fig'''
+
+# Instantiate OpenAI language model
+
+agent = create_pandas_dataframe_agent(
+    ChatOpenAI(temperature=0, model="gpt-3.5-turbo-0613"),
+     dashboard.data,
+    verbose=True,
+    agent_type=AgentType.OPENAI_FUNCTIONS,
+)
+
+# Define callback to interact with SmartDataFrame
+# Define callback to handle user input and display output
+@app.callback(
+    Output('output-container', 'children'),
+    [Input('analyse-button', 'n_clicks'),
+     Input('refresh-button', 'n_clicks')],
+    [State('user-input', 'value')]
+)
+def update_output(analyse_clicks, refresh_clicks, user_input):
+    global user_queries
+    ctx = dash.callback_context
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+    
+    if triggered_id == 'analyse-button' and analyse_clicks > 0 and user_input:
+        user_queries.append({'input': user_input, 'output': agent.run(user_input)})
+    elif triggered_id == 'refresh-button' and refresh_clicks > 0:
+        user_queries = []
+    
+    return [html.Div([
+        html.P(query['output']) if isinstance(query['output'], str) else dcc.Graph(figure=query['output'])
+    ]) for query in user_queries]
+
+
 
 # Scatter Plot Callback
 @app.callback(
@@ -286,8 +404,6 @@ def update_histogram(column, bins):
     explanation_text = f"The histogram above displays the distribution of {column.lower()} with {bins} bins."
 
     return {'data': histogram_data, 'layout': layout}, explanation_text
-
-app.layout = default_layout
 
 if __name__ == '__main__':
     app.run_server(debug=True)
