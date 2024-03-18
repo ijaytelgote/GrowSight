@@ -8,48 +8,20 @@ import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
 from faker import Faker
+from GeneratedData import DataGenerator
 
 fake = Faker()
 
+
 class VisualizationDashboard:
     def __init__(self):
-        self.data = self.generate_fake_data()
+        self.data_generator = DataGenerator()
+        self.data = self.data_generator.generate_fake_data()
         self.dropdown_options = [
             {"label": col, "value": col} for col in ["Monthly Revenue", "Opportunity Amount", "Support Tickets Open",
                                                      "Support Tickets Closed", "Lead Score", "Age", "Contract Type",
                                                      "Gender", "Lead Status"]
         ]
-
-    def generate_fake_data(self, rows=100):
-        data = []
-
-        for _ in range(rows):
-            row = {
-                "Monthly Revenue": random.randint(1000, 10000),
-                "Opportunity Amount": random.randint(10000, 100000),
-                "Support Tickets Open": random.randint(0, 10),
-                "Support Tickets Closed": random.randint(0, 10),
-                "Lead Score": random.randint(0, 100),
-                "Age": random.randint(18, 90),
-                "Size": random.uniform(5, 30),
-                "Continent": random.choice(["Asia", "Europe", "Africa", "Americas"]),
-                "Contract Type": random.choice(["One-time", "Recurring"]),
-                "Gender": random.choice(["Male", "Female"]),
-                "Lead Status": random.choice(["Qualified", "Unqualified", "Contacted", "Not Contacted"]),
-                "Country": fake.country(),
-                "Population": random.randint(1000000, 1000000000),
-                "Area (sq km)": random.randint(100000, 10000000),
-                "GDP (USD)": random.randint(1000000, 10000000000),
-                'Last Email Sent Date': np.random.choice(pd.date_range(start='2023-01-01', periods=rows)),
-                'Last Interaction Date': np.random.choice(pd.date_range(start='2020-10-01', periods=rows)),
-                'Last Meeting Date': np.random.choice(pd.date_range(start='2022-12-01', periods=rows)),
-                'Last Phone Call Date': np.random.choice(pd.date_range(start='2003-01-06', periods=rows)),
-                'Probability of Close': random.randint(0, 100)
-            }
-            data.append(row)
-
-        df = pd.DataFrame(data)
-        return df
 
     def create_scatter_layout(self):
         return html.Div([
@@ -100,13 +72,15 @@ class VisualizationDashboard:
         return html.Div([
             dcc.Dropdown(
                 id='time-dropdown-x',
-                options=[{'label': col, 'value': col} for col in ['Last Email Sent Date','Last Interaction Date','Last Phone Call Date','Last Meeting Date']],
+                options=[{'label': col, 'value': col} for col in ['Last Email Sent Date', 'Last Interaction Date',
+                                                                  'Last Phone Call Date', 'Last Meeting Date']],
                 value='Last Email Sent Date',
                 style={'width': '48%', 'display': 'inline-block'}
             ),
             dcc.Dropdown(
                 id='time-dropdown-y',
-                options=[{'label': col, 'value': col} for col in ['Monthly Revenue','Opportunity Amount','Probability of Close']],
+                options=[{'label': col, 'value': col} for col in ['Monthly Revenue', 'Opportunity Amount',
+                                                                  'Probability of Close']],
                 value='Opportunity Amount',
                 style={'width': '48%', 'float': 'right', 'display': 'inline-block'}
             ),
@@ -164,7 +138,7 @@ class VisualizationDashboard:
                 html.Label("Select Data Column:"),
                 dcc.Dropdown(
                     id='hist-dropdown-column',
-                    options=[{'label': col, 'value': col} for col in self.data.keys()],
+                    options=[{'label': col, 'value': col} for col in self.data.columns],
                     value='Lead Score'
                 ),
                 dcc.Graph(id='histogram',
