@@ -5,9 +5,8 @@ itsdangerous==1.1.0
 Jinja2==2.11.3
 MarkupSafe==1.1.1
 Werkzeug==1.0.1
-
-
-
+duckdb
+textblob
 numpy==1.24.3
 faker==24.0.0
 dash==2.6.2
@@ -18,5 +17,10 @@ dash-html-components==2.0.0
 dash-renderer==1.9.1
 dash-table==5.0.0
 plotly==5.10.0
+textblob==0.18.0.post0
+polar==0.0.127
 tabulate
 pandas==1.5.3
+langchain_experimental
+langchain-openai
+langchain
