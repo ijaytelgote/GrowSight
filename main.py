@@ -1,5 +1,5 @@
-import dash
-import pandas as pd
+import random
+
 import dash
 import numpy as np
 import pandas as pd
@@ -8,25 +8,32 @@ import plotly.graph_objects as go
 from dash import dcc, html
 from dash.dependencies import Input, Output
 from faker import Faker
+from GeneratedData import DataGenerator
 
-from GeneratedData import generate_fake_data
+fake = Faker()
 
 class VisualizationDashboard:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self):
+        self.data_generator = DataGenerator()
+        self.data = self.data_generator.generate_fake_data()
+        self.dropdown_options = [
+            {"label": col, "value": col} for col in ["Monthly Revenue", "Opportunity Amount", "Support Tickets Open",
+                                                     "Support Tickets Closed", "Lead Score", "Age", "Contract Type",
+                                                     "Gender", "Lead Status"]
+        ]
 
     def create_scatter_layout(self):
         return html.Div([
             html.H1('Scatter Plot'),
             dcc.Dropdown(
                 id='scatter-dropdown-x',
-                options=[{"label": col, "value": col} for col in self.data.columns],
+                options=self.dropdown_options,
                 value='Monthly Revenue',
                 style={'color': 'black'}
             ),
             dcc.Dropdown(
                 id='scatter-dropdown-y',
-                options=[{"label": col, "value": col} for col in self.data.columns],
+                options=self.dropdown_options,
                 value='Opportunity Amount',
                 style={'color': 'black'}
             ),
@@ -148,10 +155,7 @@ class VisualizationDashboard:
 
 # Initialize the Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
-
-# Load data
-data = generate_fake_data()
-dashboard = VisualizationDashboard(data)
+dashboard = VisualizationDashboard()
 
 # Define layout for default page
 default_layout = html.Div([
