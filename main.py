@@ -27,10 +27,6 @@ from langchain_openai import ChatOpenAI, OpenAI
 
 
 
-
-nltk.download('punkt')
-nltk.download('stopwords')
-
 # Define tool class
 class Tool:
     # Define colors
