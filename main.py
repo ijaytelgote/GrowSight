@@ -1,3 +1,12 @@
+
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
+from heapq import nlargest
+from textblob import TextBlob
+from deep_translator import GoogleTranslator
+import string
+
 import os
 import random
 import tabulate
@@ -15,6 +24,85 @@ from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents.agent_toolkits import \
     create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI, OpenAI
+
+
+
+
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Define tool class
+class Tool:
+    # Define colors
+    colors = {
+        'background': '#f9f9f9',
+        'text': '#333333',
+        'accent': '#007bff',
+        'border': '#dddddd'
+    }
+
+    # Define styles
+    textarea_style = {'width': '100%', 'height': '80px', 'border': '1px solid ' + colors['border'], 'border-radius': '5px', 'padding': '10px', 'resize': 'none'}
+    radio_item_style = {'display': 'inline-block', 'margin-right': '15px'}
+    result_container_style = {'margin-top': '10px', 'padding': '15px', 'border': '1px solid ' + colors['border'], 'border-radius': '5px'}
+
+    def layout(self):
+        return html.Div(style={'display': 'flex', 'flex-direction': 'column', 'backgroundColor': self.colors['background'], 'padding': '10px'}, children=[
+            html.H1("Text Utility Tool", style={'text-align': 'center', 'color': self.colors['accent'], 'margin-bottom': '10px', 'font-size': '18px'}),
+            html.Div(style={'display': 'flex', 'flex-direction': 'column'}, children=[
+                dcc.Textarea(id='input', placeholder='Enter text here...', style=self.textarea_style),
+                dcc.RadioItems(
+                    id='operation-select',
+                    options=[
+                        {'label': 'Translation', 'value': 'translate'},
+                        {'label': 'Insights', 'value': 'insight'},
+                        {'label': 'Summary', 'value': 'text_summarization'},
+                        {'label': 'Sentiments', 'value': 'analyze_sentiment'}
+                    ],
+                    value='text_summarization',  # Default value
+                    labelStyle={'display': 'block', 'margin-bottom': '5px', 'font-size': '14px'},
+                    inputStyle=self.radio_item_style
+                )
+            ]),
+            html.Div(id='result-container', style=self.result_container_style)
+        ])
+
+    def analyze_sentiment(self, text):
+        sentiment_score = 0  # Replace with your sentiment analysis logic
+        if sentiment_score > 0:
+            return html.Div("Positive Sentiment", style={'color': self.colors['accent'], 'font-weight': 'bold'})
+        elif sentiment_score < 0:
+            return html.Div("Negative Sentiment", style={'color': 'red', 'font-weight': 'bold'})
+        else:
+            return html.Div("Neutral Sentiment", style={'color': self.colors['text'], 'font-weight': 'bold'})
+
+    def text_summarization(self, text, num_sentences=3):
+        summary = 'Summary of text'  # Replace with your text summarization logic
+        return html.Div([
+            html.H3("Summary:", style={'color': self.colors['accent']}),
+            html.P(summary, style={'color': self.colors['text']})
+        ])
+
+    def insight(self, text):
+        insight_result = [('Word1', 10), ('Word2', 5)]  # Replace with your insight logic
+        return html.Div([
+            html.H3("Insights:", style={'color': self.colors['accent']}),
+            html.Table([
+                html.Thead(html.Tr([html.Th("Word", style={'color': self.colors['text']}), html.Th("Frequency", style={'color': self.colors['text']})])),
+                html.Tbody([
+                    html.Tr([html.Td(word, style={'color': self.colors['text']}), html.Td(str(freq), style={'color': self.colors['text']})]) for word, freq in insight_result
+                ])
+            ])
+        ])
+
+    def translate(self, text):
+        translated_text = "Translated text"  # Replace with your translation logic
+        return html.Div([
+            html.H3("Translated Text:", style={'color': self.colors['accent']}),
+            html.P(translated_text, style={'color': self.colors['text']})
+        ])
+
+
 
 
 fake = Faker()
@@ -163,20 +251,15 @@ class VisualizationDashboard:
 # Initialize the Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
+tool = Tool()
 
-# Define layout for sentiment analysis page
-'''
-# Define layout for sentiment analysis page
-sentiment_layout = html.Div([
-    html.H1("Sentiment Analysis", style={'text-align': 'center', 'margin-bottom': '30px'}),
-    html.Div([
-        dcc.Textarea(id='input-text', placeholder='Enter text...', style={'width': '60%', 'height': '200px', 'margin': 'auto', 'display': 'block'}),
-        html.Button('Analyze', id='analyze-button', n_clicks=0, style={'margin-top': '20px', 'margin-bottom': '20px'}),
-        html.Div(id='output-sentiment', style={'text-align': 'center'})
-    ], style={'text-align': 'center', 'margin': 'auto', 'margin-top': '50px'}),
-    dcc.Graph(id='sentiment-pie-chart', style={'width': '60%', 'margin': 'auto', 'margin-top': '50px', 'display': 'none'})
+# Define layout for default page
+default_layout = html.Div([
+    tool.layout()
 ])
-'''
+
+
+
 
 # Store user queries and outputs
 user_queries = []
@@ -205,13 +288,18 @@ default_layout = html.Div([
 ])
 
 # Define callback to update layout based on path
+
+
+
+
+# Define callback to update layout based on path
 @app.callback(
     Output('page-content', 'children'),
     [Input('url', 'pathname')]
 )
 def display_page(pathname):
-    if pathname == '/sentiment':
-        return None
+    if pathname == '/tools':
+        return tool.layout()
     elif pathname == '/talk_to_data':
         return smartdata_layout
     else:
