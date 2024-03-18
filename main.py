@@ -12,6 +12,7 @@ from GeneratedData import DataGenerator
 
 fake = Faker()
 
+
 class VisualizationDashboard:
     def __init__(self):
         self.data_generator = DataGenerator()
@@ -71,13 +72,15 @@ class VisualizationDashboard:
         return html.Div([
             dcc.Dropdown(
                 id='time-dropdown-x',
-                options=[{'label': col, 'value': col} for col in ['Last Email Sent Date','Last Interaction Date','Last Phone Call Date','Last Meeting Date']],
+                options=[{'label': col, 'value': col} for col in ['Last Email Sent Date', 'Last Interaction Date',
+                                                                  'Last Phone Call Date', 'Last Meeting Date']],
                 value='Last Email Sent Date',
                 style={'width': '48%', 'display': 'inline-block'}
             ),
             dcc.Dropdown(
                 id='time-dropdown-y',
-                options=[{'label': col, 'value': col} for col in ['Monthly Revenue','Opportunity Amount','Probability of Close']],
+                options=[{'label': col, 'value': col} for col in ['Monthly Revenue', 'Opportunity Amount',
+                                                                  'Probability of Close']],
                 value='Opportunity Amount',
                 style={'width': '48%', 'float': 'right', 'display': 'inline-block'}
             ),
@@ -135,7 +138,7 @@ class VisualizationDashboard:
                 html.Label("Select Data Column:"),
                 dcc.Dropdown(
                     id='hist-dropdown-column',
-                    options=[{'label': col, 'value': col} for col in self.data.keys()],
+                    options=[{'label': col, 'value': col} for col in self.data.columns],
                     value='Lead Score'
                 ),
                 dcc.Graph(id='histogram',
