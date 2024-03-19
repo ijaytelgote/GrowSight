@@ -254,83 +254,8 @@ app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 tool = Tool()
 
-class AiFeatures:
-    @staticmethod
-    def update_graph():
-        # Generate fake data
-        df = AiFeatures.generate_fake_data()
-
-        # Select relevant features for clustering
-        X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
-                'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
-                'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
-
-        # Scale the features
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-
-        # Fit KMeans clustering algorithm
-        k = 3  # Number of clusters
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        df['Cluster'] = kmeans.fit_predict(X_scaled)
-
-        # Map clusters to meaningful categories
-        cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
-        df['Cluster'] = df['Cluster'].map(cluster_mapping)
-
-        # Visualize in 3D scatter plot
-        fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
-                             color='Cluster', symbol='Cluster', opacity=0.7,
-                             hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
-
-        return fig
 
 
-
-
-
-
-
-
-segment_layout = html.Div([
-    html.H1("Customer Segmentation Dashboard"),
-    html.Div([
-        dcc.Graph(id='scatter-plot'),
-    ]),
-])
-
-@app.callback(
-    Output('scatter-plot', 'figure'),
-    [Input('scatter-plot', 'id')]
-)
-def update_graph(_):
-    df = dashboard.data
-    X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
-            'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
-            'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
-
-    # Scale the features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    # Fit KMeans clustering algorithm
-    k = 3  # Number of clusters
-    kmeans = KMeans(n_clusters=k, random_state=42)
-    df['Cluster'] = kmeans.fit_predict(X_scaled)
-
-    # Map clusters to meaningful categories
-    cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
-
-    df['Cluster'] = df['Cluster'].map(cluster_mapping)
-
-    # Visualize in 3D scatter plot
-    fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
-                         color='Cluster', symbol='Cluster', opacity=0.7,
-                         hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
-    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
-
-    return fig
 
 
 
@@ -384,25 +309,6 @@ default_layout = html.Div([
 
 
 
-
-# Define layout for customer_seg path
-customer_seg_layout = html.Div([
-    html.H1("Customer Segmentation Dashboard"),
-    html.Div([
-        dcc.Graph(id='scatter-plot')
-    ])
-])
-
-
-
-# Define callback to update scatter plot
-@app.callback(
-    Output('scatter-plot', 'figure'),
-    [Input('scatter-plot', 'id')]
-)
-def update_scatter_plot(_):
-    return AiFeatures.update_graph()
-
 # Define callback to update line plot for default path
 
 
@@ -422,8 +328,6 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == '/tools':
         return tool.layout()
-    elif pathname=='customer_seg':
-        return customer_seg_layout
     elif pathname == '/talk_to_data':
         return smartdata_layout
     else:
