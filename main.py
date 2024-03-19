@@ -296,17 +296,6 @@ default_layout = html.Div([
 
 
 
-# Define callback to update layout based on path
-@app.callback(
-    Output('page-content', 'children'),
-    [Input('url', 'pathname')]
-)
-
-
-
-
-
-
 
 
 # Define callback to update line plot for default path
