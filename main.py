@@ -1,4 +1,3 @@
-
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -9,8 +8,6 @@ import string
 
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-
-
 
 import os
 import random
@@ -26,11 +23,8 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from faker import Faker
 from langchain.agents.agent_types import AgentType
-from langchain_experimental.agents.agent_toolkits import \
-    create_pandas_dataframe_agent
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI, OpenAI
-
-
 
 # Define tool class
 class Tool:
@@ -69,7 +63,7 @@ class Tool:
         ])
 
     def analyze_sentiment(self, text):
-        sentiment_score = 0  # Replace with your sentiment analysis logic
+        sentiment_score = TextBlob(text).sentiment.polarity
         if sentiment_score > 0:
             return html.Div("Positive Sentiment", style={'color': self.colors['accent'], 'font-weight': 'bold'})
         elif sentiment_score < 0:
@@ -78,14 +72,44 @@ class Tool:
             return html.Div("Neutral Sentiment", style={'color': self.colors['text'], 'font-weight': 'bold'})
 
     def text_summarization(self, text, num_sentences=3):
-        summary = 'Summary of text'  # Replace with your text summarization logic
+        sentences = sent_tokenize(text)
+        word_frequencies = {}
+        for word in nltk.word_tokenize(text.lower()):
+            if word not in stopwords.words('english') and word not in string.punctuation:
+                if word not in word_frequencies:
+                    word_frequencies[word] = 1
+                else:
+                    word_frequencies[word] += 1
+        maximum_frequency = max(word_frequencies.values())
+        for word in word_frequencies.keys():
+            word_frequencies[word] = (word_frequencies[word] / maximum_frequency)
+        sentence_scores = {}
+        for sentence in sentences:
+            for word in nltk.word_tokenize(sentence.lower()):
+                if word in word_frequencies.keys():
+                    if len(sentence.split(' ')) < 30:
+                        if sentence not in sentence_scores.keys():
+                            sentence_scores[sentence] = word_frequencies[word]
+                        else:
+                            sentence_scores[sentence] += word_frequencies[word]
+        summary_sentences = nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+        summary = ' '.join(summary_sentences)
         return html.Div([
             html.H3("Summary:", style={'color': self.colors['accent']}),
             html.P(summary, style={'color': self.colors['text']})
         ])
 
     def insight(self, text):
-        insight_result = [('Word1', 10), ('Word2', 5)]  # Replace with your insight logic
+        words = nltk.word_tokenize(text)
+        word_frequencies = {}
+        for word in words:
+            if word not in stopwords.words('english') and word not in string.punctuation:
+                if word not in word_frequencies.keys():
+                    word_frequencies[word] = 1
+                else:
+                    word_frequencies[word] += 1
+        sorted_word_frequencies = sorted(word_frequencies.items(), key=lambda x: x[1], reverse=True)
+        insight_result = [(word, freq) for word, freq in sorted_word_frequencies[:5]]
         return html.Div([
             html.H3("Insights:", style={'color': self.colors['accent']}),
             html.Table([
@@ -97,14 +121,11 @@ class Tool:
         ])
 
     def translate(self, text):
-        translated_text = "Translated text"  # Replace with your translation logic
+        translated_text = GoogleTranslator(source='auto', target='en').translate(text)
         return html.Div([
             html.H3("Translated Text:", style={'color': self.colors['accent']}),
             html.P(translated_text, style={'color': self.colors['text']})
         ])
-
-
-
 
 fake = Faker()
 
@@ -254,17 +275,6 @@ app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 tool = Tool()
 
-
-
-
-
-
-
-
-
-
-
-
 # Store user queries and outputs
 user_queries = []
 
@@ -291,16 +301,6 @@ default_layout = html.Div([
     dashboard.create_histogram_layout()
 ])
 
-# Define callback to update layout based on path
-
-
-
-
-
-
-# Define callback to update line plot for default path
-
-
 # Define the app layout
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -312,8 +312,6 @@ app.layout = html.Div([
     Output('page-content', 'children'),
     [Input('url', 'pathname')]
 )
-
-
 def display_page(pathname):
     if pathname == '/tools':
         return tool.layout()
@@ -327,9 +325,6 @@ app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content')
 ])
-
-
-
 
 # Instantiate OpenAI language model
 
