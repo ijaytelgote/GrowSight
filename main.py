@@ -74,7 +74,7 @@ class VisualizationDashboard:
                     {'label': 'Continent', 'value': 'Continent'},
                     {'label': 'Gender', 'value': 'Gender'},
                 ],
-                value='Age',
+                value='Continent',
                 clearable=False
             ),
             dcc.Dropdown(
