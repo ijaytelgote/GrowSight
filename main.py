@@ -442,9 +442,6 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == '/NewFetch':
         return NewFetch.master_layout(dashboard.data)
-    else:
-        return None
-
     elif pathname == '/talk_to_data':
         return smartdata_layout
     else:
