@@ -487,7 +487,7 @@ def display_page(pathname):
     if pathname == '/tools':
         return master_layout()
     elif pathname == '/talk_to_data':
-        return None
+        return smartdata_layout
     else:
         return default_layout
 
