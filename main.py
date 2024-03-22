@@ -3,7 +3,6 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
 from heapq import nlargest
 from textblob import TextBlob
-from deep_translator import GoogleTranslator
 import string
 
 from sklearn.cluster import KMeans
