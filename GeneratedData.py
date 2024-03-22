@@ -12,6 +12,8 @@ class DataGenerator:
 
         for _ in range(rows):
             row = {
+                 'Timestamp': fake.date_time_between(start_date='-30d', end_date='now'),
+                 'comment': fake.text(),
                 "Monthly Revenue": random.randint(1000, 10000),
                 "Opportunity Amount": random.randint(10000, 100000),
                 "Support Tickets Open": random.randint(0, 10),
