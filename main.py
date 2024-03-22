@@ -27,7 +27,8 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from textblob import TextBlob
-
+nltk.download('punkt')
+nltk.download('stopwords')
 fake = Faker()
 
 class VisualizationDashboard:
