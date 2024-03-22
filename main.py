@@ -17,7 +17,6 @@ import tabulate
 from GeneratedData import DataGenerator
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
-from deep_translator import GoogleTranslator
 from faker import Faker
 from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents.agent_toolkits import \
