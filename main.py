@@ -26,106 +26,231 @@ from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI, OpenAI
 
-# Define tool class
-class Tool:
-    # Define colors
-    colors = {
-        'background': '#f9f9f9',
-        'text': '#333333',
-        'accent': '#007bff',
-        'border': '#dddddd'
-    }
 
-    # Define styles
-    textarea_style = {'width': '100%', 'height': '80px', 'border': '1px solid ' + colors['border'], 'border-radius': '5px', 'padding': '10px', 'resize': 'none'}
-    radio_item_style = {'display': 'inline-block', 'margin-right': '15px'}
-    result_container_style = {'margin-top': '10px', 'padding': '15px', 'border': '1px solid ' + colors['border'], 'border-radius': '5px'}
+from faker import Faker
+from textblob import TextBlob
+import pandas as pd
+import plotly.express as px
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import random
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import string
+import re
 
-    def layout(self):
-        return html.Div(style={'display': 'flex', 'flex-direction': 'column', 'backgroundColor': self.colors['background'], 'padding': '10px'}, children=[
-            html.H1("Text Utility Tool", style={'text-align': 'center', 'color': self.colors['accent'], 'margin-bottom': '10px', 'font-size': '18px'}),
-            html.Div(style={'display': 'flex', 'flex-direction': 'column'}, children=[
-                dcc.Textarea(id='input', placeholder='Enter text here...', style=self.textarea_style),
-                dcc.RadioItems(
-                    id='operation-select',
-                    options=[
-                        {'label': 'Translation', 'value': 'translate'},
-                        {'label': 'Insights', 'value': 'insight'},
-                        {'label': 'Summary', 'value': 'text_summarization'},
-                        {'label': 'Sentiments', 'value': 'analyze_sentiment'}
-                    ],
-                    value='text_summarization',  # Default value
-                    labelStyle={'display': 'block', 'margin-bottom': '5px', 'font-size': '14px'},
-                    inputStyle=self.radio_item_style
-                )
-            ]),
-            html.Div(id='result-container', style=self.result_container_style)
-        ])
+# Define sentiment colors
+sentiment_colors = {
+    'Sad': '#1f77b4',  # blue
+    'Neutral': '#ff7f0e',  # orange
+    'Happy': '#2ca02c',  # green
+}
 
-    def analyze_sentiment(self, text):
-        sentiment_score = TextBlob(text).sentiment.polarity
-        if sentiment_score > 0:
-            return html.Div("Positive Sentiment", style={'color': self.colors['accent'], 'font-weight': 'bold'})
-        elif sentiment_score < 0:
-            return html.Div("Negative Sentiment", style={'color': 'red', 'font-weight': 'bold'})
+# Function to generate fake data
+
+
+class NewFetch:
+
+    @staticmethod
+    def analyze_sentiment(comment):
+        analysis = TextBlob(comment)
+        if analysis.sentiment.polarity > 0.2:
+            return 'Happy'
+        elif analysis.sentiment.polarity < -0.2:
+            return 'Sad'
         else:
-            return html.Div("Neutral Sentiment", style={'color': self.colors['text'], 'font-weight': 'bold'})
+            return 'Neutral'
 
-    def text_summarization(self, text, num_sentences=3):
-        sentences = sent_tokenize(text)
-        word_frequencies = {}
-        for word in nltk.word_tokenize(text.lower()):
-            if word not in stopwords.words('english') and word not in string.punctuation:
-                if word not in word_frequencies:
-                    word_frequencies[word] = 1
-                else:
-                    word_frequencies[word] += 1
-        maximum_frequency = max(word_frequencies.values())
-        for word in word_frequencies.keys():
-            word_frequencies[word] = (word_frequencies[word] / maximum_frequency)
-        sentence_scores = {}
-        for sentence in sentences:
-            for word in nltk.word_tokenize(sentence.lower()):
-                if word in word_frequencies.keys():
-                    if len(sentence.split(' ')) < 30:
-                        if sentence not in sentence_scores.keys():
-                            sentence_scores[sentence] = word_frequencies[word]
-                        else:
-                            sentence_scores[sentence] += word_frequencies[word]
-        summary_sentences = nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
-        summary = ' '.join(summary_sentences)
-        return html.Div([
-            html.H3("Summary:", style={'color': self.colors['accent']}),
-            html.P(summary, style={'color': self.colors['text']})
-        ])
+    @staticmethod
+    def customer_seg(df):
+        X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
+                'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
+                'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
 
-    def insight(self, text):
-        words = nltk.word_tokenize(text)
-        word_frequencies = {}
-        for word in words:
-            if word not in stopwords.words('english') and word not in string.punctuation:
-                if word not in word_frequencies.keys():
-                    word_frequencies[word] = 1
-                else:
-                    word_frequencies[word] += 1
-        sorted_word_frequencies = sorted(word_frequencies.items(), key=lambda x: x[1], reverse=True)
-        insight_result = [(word, freq) for word, freq in sorted_word_frequencies[:5]]
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        k = 3  # Number of clusters
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        df['Cluster'] = kmeans.fit_predict(X_scaled)
+
+        cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
+        df['Cluster'] = df['Cluster'].map(cluster_mapping)
+
+        fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
+                             color='Cluster', symbol='Cluster', opacity=0.7,
+                             hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
+        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+
+        return fig
+
+    @staticmethod
+    def generate_layout_customer_seg():
+        df = generate_fake_data()
+        scatter_plot = NewFetch.customer_seg(df)
+
         return html.Div([
-            html.H3("Insights:", style={'color': self.colors['accent']}),
-            html.Table([
-                html.Thead(html.Tr([html.Th("Word", style={'color': self.colors['text']}), html.Th("Frequency", style={'color': self.colors['text']})])),
-                html.Tbody([
-                    html.Tr([html.Td(word, style={'color': self.colors['text']}), html.Td(str(freq), style={'color': self.colors['text']})]) for word, freq in insight_result
-                ])
+            html.Div([
+                html.H1("Customer Segmentation 3D"),
+                html.Div([dcc.Graph(id='scatter-plot', figure=scatter_plot)]),
             ])
         ])
 
-    def translate(self, text):
-        translated_text = GoogleTranslator(source='auto', target='en').translate(text)
-        return html.Div([
-            html.H3("Translated Text:", style={'color': self.colors['accent']}),
-            html.P(translated_text, style={'color': self.colors['text']})
+    @staticmethod
+    def master_layout(df):
+        layout = html.Div([
+            html.Div([
+                html.H1("Sentiment Analysis Over Time"),
+                dcc.DatePickerRange(
+                    id='date-range-picker',
+                    min_date_allowed=df['Timestamp'].min(),
+                    max_date_allowed=df['Timestamp'].max(),
+                    initial_visible_month=df['Timestamp'].min(),
+                    start_date=df['Timestamp'].min(),
+                    end_date=df['Timestamp'].max(),
+                    display_format='YYYY-MM-DD'
+                ),
+                dcc.Graph(id='sentiment-graph'),
+            ]),
+
+            NewFetch.generate_layout_customer_seg(),
+
+            html.Div(
+                className='container',
+                children=[
+                    html.Div(
+                        className='header',
+                        children=[
+                            html.H1('Average Customers Fall', className='title'),
+                            html.P('Select Date Range:', className='date-label'),
+                            dcc.DatePickerRange(
+                                id='date-picker',
+                                start_date=df['Timestamp'].min(),
+                                end_date=df['Timestamp'].max(),
+                                display_format='YYYY-MM-DD',
+                                className='date-picker'
+                            ),
+                        ]
+                    ),
+                    dcc.Graph(id='sentiment-bubbles', className='graph')]),
+
+            html.Div([
+                html.H1("Text Insight Analyzer"),
+                html.Div(children='Enter text to analyze:'),
+                dcc.Textarea(
+                    id='input-text',
+                    value='',
+                    style={'width': '100%', 'height': 200}
+                ),
+                html.Label('Select Number of Top Words:'),
+                dcc.Dropdown(
+                    id='top-words-dropdown',
+                    options=[
+                        {'label': 'Top 5', 'value': 5},
+                        {'label': 'Top 10', 'value': 10},
+                        {'label': 'Top 15', 'value': 15},
+                        {'label': 'Top 20', 'value': 20}
+                    ],
+                    value=5,
+                    clearable=False,
+                    style={'width': '50%'}
+                ),
+                html.Button('Analyze', id='analyze-button', n_clicks=0, style={'backgroundColor': '#007bff', 'color': 'white', 'border': 'none', 'padding': '10px 20px', 'border-radius': '5px'}),
+                html.Div(id='output-div'),
+                dcc.Graph(id='frequency-plot')
+            ])
         ])
+        return layout
+
+ 
+                
+
+
+    @staticmethod
+    def update_bubble_chart(df, start_date, end_date):
+        filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+        sentiment_counts = filtered_df['Sentiment'].value_counts()
+
+        data = []
+        for sentiment, count in sentiment_counts.items():
+            marker_size = NewFetch.scale_marker_size(count)
+            data.append(go.Scatter(
+                x=[sentiment],
+                y=[0],
+                mode='markers',
+                marker=dict(
+                    size=marker_size,
+                    color=sentiment_colors[sentiment],
+                    line=dict(color='#000000', width=1),
+                ),
+                name=sentiment,
+                hoverinfo='text',
+                hovertext=f'Sentiment: {sentiment}<br>Occurrences: {count}',
+            ))
+
+        layout = go.Layout(
+            title='Sentiment Occurrences',
+            xaxis=dict(title='Sentiment', showgrid=False),
+            yaxis=dict(visible=False),
+            showlegend=False,
+            plot_bgcolor='#FFFFFF',  # Set background color
+            paper_bgcolor='#f9f9f9',  # Set plot area background color
+            margin=dict(l=50, r=50, t=50, b=50)  # Add margin for better display
+        )
+
+        return {'data': data, 'layout': layout}
+
+    @staticmethod
+    def update_graph(df, start_date, end_date):
+        filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+
+        trace = go.Scatter(
+            x=filtered_df['Timestamp'],
+            y=filtered_df['Sentiment'].apply(lambda x: 1 if x == 'Happy' else (-1 if x == 'Sad' else 0)),
+            mode='lines+markers',
+            name='Sentiment',
+            marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
+        )
+
+        layout = go.Layout(
+            title='Sentiment Analysis Over Time',
+            xaxis=dict(title='Timestamp'),
+            yaxis=dict(title='Sentiment', tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'])
+        )
+
+        return {'data': [trace], 'layout': layout}
+
+    @staticmethod
+    def update_output(n_clicks, text, top_words):
+        if not text:
+            return "No text to analyze.", {}
+
+        tokens = word_tokenize(text.lower())
+        stop_words = set(stopwords.words('english'))
+        filtered_tokens = [re.sub(r'[^a-zA-Z]', '', word) for word in tokens if (word not in stop_words and word not in string.punctuation and re.sub(r'[^a-zA-Z]', '', word))]
+
+        freq_dist = nltk.FreqDist(filtered_tokens)
+        insight_result = freq_dist.most_common(top_words)
+
+        blob = TextBlob(text)
+        sentiment_score = blob.sentiment.polarity
+
+        sentiment_label = "Happy 😊" if sentiment_score >= 0 else "Sad 😢"
+        sentiment_color = '#28a745' if sentiment_score >= 0 else '#dc3545'
+
+        df = px.bar(x=[word[0] for word in insight_result], y=[word[1] for word in insight_result], title=f'Top {top_words} Most Common Words')
+        df.update_layout(plot_bgcolor='#f9f9f9', paper_bgcolor='#f9f9f9', font_color='#333333')
+
+        return [
+            html.Div(f"Sentiment: {sentiment_label}", style={'color': sentiment_color, 'margin-bottom': '10px'}),
+            html.Div([html.Span(f"{word[0]}: {word[1]}", style={'margin-right': '10px'}) for word in insight_result], style={'margin-bottom': '10px'}),
+            html.Div(f"Total Words: {len(filtered_tokens)}", style={'margin-bottom': '10px'})
+        ], df
+
+
+
 
 fake = Faker()
 
@@ -271,6 +396,8 @@ class VisualizationDashboard:
         ], style={'textAlign': 'center'})
 
 # Initialize the Dash app
+
+# Initialize the Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 tool = Tool()
@@ -313,8 +440,11 @@ app.layout = html.Div([
     [Input('url', 'pathname')]
 )
 def display_page(pathname):
-    if pathname == '/tools':
-        return tool.layout()
+    if pathname == '/NewFetch':
+        return NewFetch.master_layout(dashboard.data)
+    else:
+        return None
+
     elif pathname == '/talk_to_data':
         return smartdata_layout
     else:
