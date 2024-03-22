@@ -1,292 +1,33 @@
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-from heapq import nlargest
-from textblob import TextBlob
-import string
 
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
 
 import os
 import random
-import tabulate
+import re
+import string
+from heapq import nlargest
+
 import dash
 import duckdb
+import nltk
 import numpy as np
 import pandas as pd
-from GeneratedData import DataGenerator
 import plotly.express as px
 import plotly.graph_objects as go
+import tabulate
+from GeneratedData import DataGenerator
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
+from deep_translator import GoogleTranslator
 from faker import Faker
 from langchain.agents.agent_types import AgentType
-from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
+from langchain_experimental.agents.agent_toolkits import \
+    create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI, OpenAI
-
-
-class NewFetch:
-
-    @staticmethod
-    def analyze_sentiment(comment):
-        analysis = TextBlob(comment)
-        if analysis.sentiment.polarity > 0.2:
-            return 'Happy'
-        elif analysis.sentiment.polarity < -0.2:
-            return 'Sad'
-        else:
-            return 'Neutral'
-
-    @staticmethod
-    def customer_seg(df):
-        X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
-                'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
-                'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
-
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-
-        k = 3  # Number of clusters
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        df['Cluster'] = kmeans.fit_predict(X_scaled)
-
-        cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
-        df['Cluster'] = df['Cluster'].map(cluster_mapping)
-
-        fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
-                             color='Cluster', symbol='Cluster', opacity=0.7,
-                             hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
-        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
-
-        return fig
-
-    @staticmethod
-    def generate_layout_customer_seg():
-        df = generate_fake_data()
-        scatter_plot = NewFetch.customer_seg(df)
-
-        return html.Div([
-            html.Div([
-                html.H1("Customer Segmentation 3D"),
-                html.Div([dcc.Graph(id='scatter-plot', figure=scatter_plot)]),
-            ])
-        ])
-
-    @staticmethod
-    def scale_marker_size(count):
-        if count <= 5:
-            return 20
-        elif count >= 50:
-            return 100
-        else:
-            return count * 2
-
-    @staticmethod
-    def master_layout(df):
-        layout = html.Div([
-            html.Div([
-                html.H1("Sentiment Analysis Over Time"),
-                dcc.DatePickerRange(
-                    id='date-range-picker',
-                    min_date_allowed=df['Timestamp'].min(),
-                    max_date_allowed=df['Timestamp'].max(),
-                    initial_visible_month=df['Timestamp'].min(),
-                    start_date=df['Timestamp'].min(),
-                    end_date=df['Timestamp'].max(),
-                    display_format='YYYY-MM-DD'
-                ),
-                dcc.Graph(id='sentiment-graph'),
-            ]),
-
-            NewFetch.generate_layout_customer_seg(),
-
-            html.Div(
-                className='container',
-                children=[
-                    html.Div(
-                        className='header',
-                        children=[
-                            html.H1('Average Customers Fall', className='title'),
-                            html.P('Select Date Range:', className='date-label'),
-                            dcc.DatePickerRange(
-                                id='date-picker',
-                                start_date=df['Timestamp'].min(),
-                                end_date=df['Timestamp'].max(),
-                                display_format='YYYY-MM-DD',
-                                className='date-picker'
-                            ),
-                        ]
-                    ),
-                    dcc.Graph(id='sentiment-bubbles', className='graph')]),
-
-            html.Div([
-                html.H1("Text Insight Analyzer"),
-                html.Div(children='Enter text to analyze:'),
-                dcc.Textarea(
-                    id='input-text',
-                    value='',
-                    style={'width': '100%', 'height': 200}
-                ),
-                html.Label('Select Number of Top Words:'),
-                dcc.Dropdown(
-                    id='top-words-dropdown',
-                    options=[
-                        {'label': 'Top 5', 'value': 5},
-                        {'label': 'Top 10', 'value': 10},
-                        {'label': 'Top 15', 'value': 15},
-                        {'label': 'Top 20', 'value': 20}
-                    ],
-                    value=5,
-                    clearable=False,
-                    style={'width': '50%'}
-                ),
-                html.Button('Analyze', id='analyze-button', n_clicks=0, style={'backgroundColor': '#007bff', 'color': 'white', 'border': 'none', 'padding': '10px 20px', 'border-radius': '5px'}),
-                html.Div(id='output-div'),
-                dcc.Graph(id='frequency-plot')
-            ])
-        ])
-        return layout
-
-                
-
-
-    @staticmethod
-    def update_bubble_chart(df, start_date, end_date):
-        filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
-        sentiment_counts = filtered_df['Sentiment'].value_counts()
-
-        data = []
-        for sentiment, count in sentiment_counts.items():
-            marker_size = NewFetch.scale_marker_size(count)
-            data.append(go.Scatter(
-                x=[sentiment],
-                y=[0],
-                mode='markers',
-                marker=dict(
-                    size=marker_size,
-                    color=sentiment_colors[sentiment],
-                    line=dict(color='#000000', width=1),
-                ),
-                name=sentiment,
-                hoverinfo='text',
-                hovertext=f'Sentiment: {sentiment}<br>Occurrences: {count}',
-            ))
-
-        layout = go.Layout(
-            title='Sentiment Occurrences',
-            xaxis=dict(title='Sentiment', showgrid=False),
-            yaxis=dict(visible=False),
-            showlegend=False,
-            plot_bgcolor='#FFFFFF',
-            paper_bgcolor='#f9f9f9',
-            margin=dict(l=50, r=50, t=50, b=50)
-        )
-
-        return {'data': data, 'layout': layout}
-
-    @staticmethod
-    def update_graph(df, start_date, end_date):
-        filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
-
-        trace = go.Scatter(
-            x=filtered_df['Timestamp'],
-            y=filtered_df['Sentiment'].apply(lambda x: 1 if x == 'Happy' else (-1 if x == 'Sad' else 0)),
-            mode='lines+markers',
-            name='Sentiment',
-            marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
-        )
-
-        layout = go.Layout(
-            title='Sentiment Analysis Over Time',
-            xaxis=dict(title='Timestamp'),
-            yaxis=dict(title='Sentiment', tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'])
-        )
-
-        return {'data': [trace], 'layout': layout}
-
-    @staticmethod
-    def update_output(n_clicks, text, top_words):
-        if not text:
-            return "No text to analyze.", {}
-
-        tokens = word_tokenize(text.lower())
-        stop_words = set(stopwords.words('english'))
-        filtered_tokens = [re.sub(r'[^a-zA-Z]', '', word) for word in tokens if (word not in stop_words and word not in string.punctuation and re.sub(r'[^a-zA-Z]', '', word))]
-
-        freq_dist = nltk.FreqDist(filtered_tokens)
-        insight_result = freq_dist.most_common(top_words)
-
-        blob = TextBlob(text)
-        sentiment_score = blob.sentiment.polarity
-
-        sentiment_label = "Happy 😊" if sentiment_score >= 0 else "Sad 😢"
-        sentiment_color = '#28a745' if sentiment_score >= 0 else '#dc3545'
-
-        df = px.bar(x=[word[0] for word in insight_result], y=[word[1] for word in insight_result], title=f'Top {top_words} Most Common Words')
-        df.update_layout(plot_bgcolor='#f9f9f9', paper_bgcolor='#f9f9f9', font_color='#333333')
-
-        return [
-            html.Div(f"Sentiment: {sentiment_label}", style={'color': sentiment_color, 'margin-bottom': '10px'}),
-            html.Div([html.Span(f"{word[0]}: {word[1]}", style={'margin-right': '10px'}) for word in insight_result], style={'margin-bottom': '10px'}),
-            html.Div(f"Total Words: {len(filtered_tokens)}", style={'margin-bottom': '10px'})
-        ], df
-
-    
-
-
-
-
-    
-    @staticmethod
-    def update_graph(df, start_date, end_date):
-        filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
-
-        trace = go.Scatter(
-            x=filtered_df['Timestamp'],
-            y=filtered_df['Sentiment'].apply(lambda x: 1 if x == 'Happy' else (-1 if x == 'Sad' else 0)),
-            mode='lines+markers',
-            name='Sentiment',
-            marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
-        )
-
-        layout = go.Layout(
-            title='Sentiment Analysis Over Time',
-            xaxis=dict(title='Timestamp'),
-            yaxis=dict(title='Sentiment', tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'])
-        )
-
-        return {'data': [trace], 'layout': layout}
-
-    @staticmethod
-    def update_output(n_clicks, text, top_words):
-        if not text:
-            return "No text to analyze.", {}
-
-        tokens = word_tokenize(text.lower())
-        stop_words = set(stopwords.words('english'))
-        filtered_tokens = [re.sub(r'[^a-zA-Z]', '', word) for word in tokens if (word not in stop_words and word not in string.punctuation and re.sub(r'[^a-zA-Z]', '', word))]
-
-        freq_dist = nltk.FreqDist(filtered_tokens)
-        insight_result = freq_dist.most_common(top_words)
-
-        blob = TextBlob(text)
-        sentiment_score = blob.sentiment.polarity
-
-        sentiment_label = "Happy 😊" if sentiment_score >= 0 else "Sad 😢"
-        sentiment_color = '#28a745' if sentiment_score >= 0 else '#dc3545'
-
-        df = px.bar(x=[word[0] for word in insight_result], y=[word[1] for word in insight_result], title=f'Top {top_words} Most Common Words')
-        df.update_layout(plot_bgcolor='#f9f9f9', paper_bgcolor='#f9f9f9', font_color='#333333')
-
-        return [
-            html.Div(f"Sentiment: {sentiment_label}", style={'color': sentiment_color, 'margin-bottom': '10px'}),
-            html.Div([html.Span(f"{word[0]}: {word[1]}", style={'margin-right': '10px'}) for word in insight_result], style={'margin-bottom': '10px'}),
-            html.Div(f"Total Words: {len(filtered_tokens)}", style={'margin-bottom': '10px'})
-        ], df
-
-
-
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize, word_tokenize
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from textblob import TextBlob
 
 fake = Faker()
 
@@ -432,27 +173,197 @@ class VisualizationDashboard:
         ], style={'textAlign': 'center'})
 
 # Initialize the Dash app
-
-# Initialize the Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 
-#efine the sentiment colors
+
+# Function to analyze sentiment using TextBlob
+def analyze_sentiment(comment):
+    analysis = TextBlob(comment)
+    if analysis.sentiment.polarity > 0.2:
+        return 'Happy'
+    elif analysis.sentiment.polarity < -0.2:
+        return 'Sad'
+    else:
+        return 'Neutral'
+
+# Define the SeriesVisualization class
+
+def customer_seg():
+    df = dashboard.data
+    X = df[['Monthly Revenue', 'Opportunity Amount', 'Support Tickets Open',
+            'Support Tickets Closed', 'Lead Score', 'Age', 'Size',
+            'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close']]
+
+    # Scale the features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Fit KMeans clustering algorithm
+    k = 3  # Number of clusters
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    df['Cluster'] = kmeans.fit_predict(X_scaled)
+
+    # Map clusters to meaningful categories
+    cluster_mapping = {0: "Active", 1: "Inactive", 2: "Lead"}
+
+    df['Cluster'] = df['Cluster'].map(cluster_mapping)
+
+    # Visualize in 3D scatter plot
+    fig = px.scatter_3d(df, x='Monthly Revenue', y='Opportunity Amount', z='Support Tickets Open',
+                         color='Cluster', symbol='Cluster', opacity=0.7,
+                         hover_data=['Age', 'Size', 'Population', 'Area (sq km)', 'GDP (USD)', 'Probability of Close'])
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
+
+    return fig
+
+def generate_layout_customer_seg():
+    scatter_plot = customer_seg()
+
+    return html.Div([
+        html.Div([
+            html.H1("Customer Segmentation 3D"),
+            html.Div([dcc.Graph(id='scatter-plot', figure=scatter_plot)]),
+        ])
+    ])
+
+
+df = dashboard.data
+
+# Adding sentiment analysis to the DataFrame
+df['Sentiment'] = df['comment'].apply(analyze_sentiment)
+
+# Creating DataFrame for sentiment analysis
+df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+
+# Sort DataFrame by Timestamp
+df.sort_values(by='Timestamp', inplace=True)
+
+
+
+
 sentiment_colors = {
-    'Sad': '#1f77b4',
-    'Neutral': '#ff7f0e',
-    'Happy': '#2ca02c',
+    'Sad': '#1f77b4',  # blue
+    'Neutral': '#ff7f0e',  # orange
+    'Happy': '#2ca02c',  # green
 }
 
-# Define callback to update bubble chart
+
+
+def master_layout():
+    return html.Div([
+        html.Div([
+            html.H1("Sentiment Analysis Over Time"),
+            dcc.DatePickerRange(
+                id='date-range-picker',
+                min_date_allowed=df['Timestamp'].min(),
+                max_date_allowed=df['Timestamp'].max(),
+                initial_visible_month=df['Timestamp'].min(),
+                start_date=df['Timestamp'].min(),
+                end_date=df['Timestamp'].max(),
+                display_format='YYYY-MM-DD'
+            ),
+            dcc.Graph(id='sentiment-graph'),
+        ]),
+        generate_layout_customer_seg(),
+
+        html.Div(
+            className='container',
+            children=[
+                html.Div(
+                    className='header',
+                    children=[
+                        html.H1('Average Customers Fall', className='title'),
+                        html.P('Select Date Range:', className='date-label'),
+                        dcc.DatePickerRange(
+                            id='date-picker',
+                            start_date=df['Timestamp'].min(),
+                            end_date=df['Timestamp'].max(),
+                            display_format='YYYY-MM-DD',
+                            className='date-picker'
+                        ),
+                    ]
+                ),
+                dcc.Graph(id='sentiment-bubbles', className='graph')]),
+
+        html.Div([
+            html.H1("Text Insight Analyzer"),
+            html.Div(children='Enter text to analyze:'),
+            dcc.Textarea(
+                id='input-text',
+                value='',
+                style={'width': '100%', 'height': 200}
+            ),
+            html.Label('Select Number of Top Words:'),
+            dcc.Dropdown(
+                id='top-words-dropdown',
+                options=[
+                    {'label': 'Top 5', 'value': 5},
+                    {'label': 'Top 10', 'value': 10},
+                    {'label': 'Top 15', 'value': 15},
+                    {'label': 'Top 20', 'value': 20}
+                ],
+                value=5,
+                clearable=False,
+                style={'width': '50%'}
+            ),
+            html.Button('Analyze', id='analyze-button', n_clicks=0, style={'backgroundColor': '#007bff', 'color': 'white', 'border': 'none', 'padding': '10px 20px', 'border-radius': '5px'}),
+            html.Div(id='output-div'),
+            dcc.Graph(id='frequency-plot')
+        ])])
+
+
+
+# Function to scale marker size based on sentiment occurrences
+def scale_marker_size(count):
+    if count <= 5:
+        return 20
+    elif count >= 50:
+        return 100
+    else:
+        return count * 2
+
+# Callback to update bubble chart
 @app.callback(
     Output('sentiment-bubbles', 'figure'),
     [Input('date-picker', 'start_date'),
      Input('date-picker', 'end_date')]
 )
 def update_bubble_chart(start_date, end_date):
-    df = generate_fake_data()  # You may load your data accordingly
-    return NewFetch.update_bubble_chart(df, start_date, end_date)
+    filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+
+    # Count occurrences of each sentiment
+    sentiment_counts = filtered_df['Sentiment'].value_counts()
+
+    # Create bubble chart
+    data = []
+    for sentiment, count in sentiment_counts.items():
+        marker_size = scale_marker_size(count)
+        data.append(go.Scatter(
+            x=[sentiment],
+            y=[0],
+            mode='markers',
+            marker=dict(
+                size=marker_size,
+                color=sentiment_colors[sentiment],
+                line=dict(color='#000000', width=1),  # Add black border
+            ),
+            name=sentiment,
+            hoverinfo='text',
+            hovertext=f'Sentiment: {sentiment}<br>Occurrences: {count}',
+        ))
+
+    layout = go.Layout(
+        title='Sentiment Occurrences',
+        xaxis=dict(title='Sentiment', showgrid=False),
+        yaxis=dict(visible=False),
+        showlegend=False,
+        plot_bgcolor='#FFFFFF',  # Set background color
+        paper_bgcolor='#f9f9f9',  # Set plot area background color
+        margin=dict(l=50, r=50, t=50, b=50)  # Add margin for better display
+    )
+
+    return {'data': data, 'layout': layout}
 
 # Define callback to update sentiment graph
 @app.callback(
@@ -461,8 +372,26 @@ def update_bubble_chart(start_date, end_date):
      Input('date-range-picker', 'end_date')]
 )
 def update_graph(start_date, end_date):
-    df = generate_fake_data()  # You may load your data accordingly
-    return NewFetch.update_graph(df, start_date, end_date)
+    filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+    
+    # Create plot
+    trace = go.Scatter(
+        x=filtered_df['Timestamp'],
+        y=filtered_df['Sentiment'].apply(lambda x: 1 if x == 'Happy' else (-1 if x == 'Sad' else 0)),
+        mode='lines+markers',
+        name='Sentiment',
+        marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
+    )
+
+    layout = go.Layout(
+        title='Sentiment Analysis Over Time',
+        xaxis=dict(title='Timestamp'),
+        yaxis=dict(title='Sentiment', tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'])
+    )
+
+    return {'data': [trace], 'layout': layout}
+
+
 
 # Define callback to update output and frequency plot
 @app.callback(
@@ -472,16 +401,38 @@ def update_graph(start_date, end_date):
     [dash.dependencies.State('input-text', 'value'),
      dash.dependencies.State('top-words-dropdown', 'value')]
 )
+
+           
+           
 def update_output(n_clicks, text, top_words):
-    return NewFetch.update_output(n_clicks, text, top_words)
+    if not text:
+        return "No text to analyze.", {}
 
+    # Tokenize and filter out stop words, punctuation, and non-alphabetic characters
+    tokens = word_tokenize(text.lower())
+    stop_words = set(stopwords.words('english'))
+    filtered_tokens = [re.sub(r'[^a-zA-Z]', '', word) for word in tokens if (word not in stop_words and word not in string.punctuation and re.sub(r'[^a-zA-Z]', '', word))]
 
+    freq_dist = nltk.FreqDist(filtered_tokens)
+    insight_result = freq_dist.most_common(top_words)
 
+    # Sentiment analysis
+    blob = TextBlob(text)
+    sentiment_score = blob.sentiment.polarity
 
+    # Determine sentiment label and color
+    sentiment_label = "Happy 😊" if sentiment_score >= 0 else "Sad 😢"
+    sentiment_color = '#28a745' if sentiment_score >= 0 else '#dc3545'
 
+    # Generate frequency plot
+    df = px.bar(x=[word[0] for word in insight_result], y=[word[1] for word in insight_result], title=f'Top {top_words} Most Common Words')
+    df.update_layout(plot_bgcolor='#f9f9f9', paper_bgcolor='#f9f9f9', font_color='#333333')
 
-
-
+    return [
+        html.Div(f"Sentiment: {sentiment_label}", style={'color': sentiment_color, 'margin-bottom': '10px'}),
+        html.Div([html.Span(f"{word[0]}: {word[1]}", style={'margin-right': '10px'}) for word in insight_result], style={'margin-bottom': '10px'}),
+        html.Div(f"Total Words: {len(filtered_tokens)}", style={'margin-bottom': '10px'})
+    ], df
 
 
 
@@ -525,11 +476,19 @@ app.layout = html.Div([
     Output('page-content', 'children'),
     [Input('url', 'pathname')]
 )
+
+
+
+
+
+
+
+
 def display_page(pathname):
-    if pathname == '/newfeature':
-        return NewFetch.master_layout(dashboard.data)
+    if pathname == '/tools':
+        return master_layout()
     elif pathname == '/talk_to_data':
-        return smartdata_layout
+        return None
     else:
         return default_layout
 
@@ -686,3 +645,5 @@ def update_histogram(column, bins):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
