@@ -26,30 +26,6 @@ from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe
 from langchain_openai import ChatOpenAI, OpenAI
 
 
-from faker import Faker
-from textblob import TextBlob
-import pandas as pd
-import plotly.express as px
-import numpy as np
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import random
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-import string
-import re
-
-# Define sentiment colors
-sentiment_colors = {
-    'Sad': '#1f77b4',  # blue
-    'Neutral': '#ff7f0e',  # orange
-    'Happy': '#2ca02c',  # green
-}
-
-# Function to generate fake data
-
-
 class NewFetch:
 
     @staticmethod
@@ -96,6 +72,15 @@ class NewFetch:
                 html.Div([dcc.Graph(id='scatter-plot', figure=scatter_plot)]),
             ])
         ])
+
+    @staticmethod
+    def scale_marker_size(count):
+        if count <= 5:
+            return 20
+        elif count >= 50:
+            return 100
+        else:
+            return count * 2
 
     @staticmethod
     def master_layout(df):
@@ -163,7 +148,6 @@ class NewFetch:
         ])
         return layout
 
- 
                 
 
 
@@ -194,13 +178,66 @@ class NewFetch:
             xaxis=dict(title='Sentiment', showgrid=False),
             yaxis=dict(visible=False),
             showlegend=False,
-            plot_bgcolor='#FFFFFF',  # Set background color
-            paper_bgcolor='#f9f9f9',  # Set plot area background color
-            margin=dict(l=50, r=50, t=50, b=50)  # Add margin for better display
+            plot_bgcolor='#FFFFFF',
+            paper_bgcolor='#f9f9f9',
+            margin=dict(l=50, r=50, t=50, b=50)
         )
 
         return {'data': data, 'layout': layout}
 
+    @staticmethod
+    def update_graph(df, start_date, end_date):
+        filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
+
+        trace = go.Scatter(
+            x=filtered_df['Timestamp'],
+            y=filtered_df['Sentiment'].apply(lambda x: 1 if x == 'Happy' else (-1 if x == 'Sad' else 0)),
+            mode='lines+markers',
+            name='Sentiment',
+            marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
+        )
+
+        layout = go.Layout(
+            title='Sentiment Analysis Over Time',
+            xaxis=dict(title='Timestamp'),
+            yaxis=dict(title='Sentiment', tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'])
+        )
+
+        return {'data': [trace], 'layout': layout}
+
+    @staticmethod
+    def update_output(n_clicks, text, top_words):
+        if not text:
+            return "No text to analyze.", {}
+
+        tokens = word_tokenize(text.lower())
+        stop_words = set(stopwords.words('english'))
+        filtered_tokens = [re.sub(r'[^a-zA-Z]', '', word) for word in tokens if (word not in stop_words and word not in string.punctuation and re.sub(r'[^a-zA-Z]', '', word))]
+
+        freq_dist = nltk.FreqDist(filtered_tokens)
+        insight_result = freq_dist.most_common(top_words)
+
+        blob = TextBlob(text)
+        sentiment_score = blob.sentiment.polarity
+
+        sentiment_label = "Happy 😊" if sentiment_score >= 0 else "Sad 😢"
+        sentiment_color = '#28a745' if sentiment_score >= 0 else '#dc3545'
+
+        df = px.bar(x=[word[0] for word in insight_result], y=[word[1] for word in insight_result], title=f'Top {top_words} Most Common Words')
+        df.update_layout(plot_bgcolor='#f9f9f9', paper_bgcolor='#f9f9f9', font_color='#333333')
+
+        return [
+            html.Div(f"Sentiment: {sentiment_label}", style={'color': sentiment_color, 'margin-bottom': '10px'}),
+            html.Div([html.Span(f"{word[0]}: {word[1]}", style={'margin-right': '10px'}) for word in insight_result], style={'margin-bottom': '10px'}),
+            html.Div(f"Total Words: {len(filtered_tokens)}", style={'margin-bottom': '10px'})
+        ], df
+
+    
+
+
+
+
+    
     @staticmethod
     def update_graph(df, start_date, end_date):
         filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
@@ -400,6 +437,57 @@ class VisualizationDashboard:
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
 
+#efine the sentiment colors
+sentiment_colors = {
+    'Sad': '#1f77b4',
+    'Neutral': '#ff7f0e',
+    'Happy': '#2ca02c',
+}
+
+# Define callback to update bubble chart
+@app.callback(
+    Output('sentiment-bubbles', 'figure'),
+    [Input('date-picker', 'start_date'),
+     Input('date-picker', 'end_date')]
+)
+def update_bubble_chart(start_date, end_date):
+    df = generate_fake_data()  # You may load your data accordingly
+    return NewFetch.update_bubble_chart(df, start_date, end_date)
+
+# Define callback to update sentiment graph
+@app.callback(
+    Output('sentiment-graph', 'figure'),
+    [Input('date-range-picker', 'start_date'),
+     Input('date-range-picker', 'end_date')]
+)
+def update_graph(start_date, end_date):
+    df = generate_fake_data()  # You may load your data accordingly
+    return NewFetch.update_graph(df, start_date, end_date)
+
+# Define callback to update output and frequency plot
+@app.callback(
+    [Output('output-div', 'children'),
+     Output('frequency-plot', 'figure')],
+    [Input('analyze-button', 'n_clicks')],
+    [dash.dependencies.State('input-text', 'value'),
+     dash.dependencies.State('top-words-dropdown', 'value')]
+)
+def update_output(n_clicks, text, top_words):
+    return NewFetch.update_output(n_clicks, text, top_words)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Store user queries and outputs
 user_queries = []
 
@@ -438,7 +526,7 @@ app.layout = html.Div([
     [Input('url', 'pathname')]
 )
 def display_page(pathname):
-    if pathname == '/NewFetch':
+    if pathname == '/newfeature':
         return NewFetch.master_layout(dashboard.data)
     elif pathname == '/talk_to_data':
         return smartdata_layout
