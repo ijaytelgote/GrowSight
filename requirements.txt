@@ -27,4 +27,4 @@ langchain
 scikit-learn
 regex
 nltk
-deep_translator
+
