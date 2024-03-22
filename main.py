@@ -400,7 +400,6 @@ class VisualizationDashboard:
 # Initialize the Dash app
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 dashboard = VisualizationDashboard()
-tool = Tool()
 
 # Store user queries and outputs
 user_queries = []
