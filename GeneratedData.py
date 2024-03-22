@@ -29,10 +29,10 @@ class DataGenerator:
                 "Population": random.randint(1000000, 1000000000),
                 "Area (sq km)": random.randint(100000, 10000000),
                 "GDP (USD)": random.randint(1000000, 10000000000),
-                'Last Email Sent Date': pd.date_range(start='2023-01-01', periods=rows),
-                'Last Interaction Date': pd.date_range(start='2020-10-01', periods=rows),
-                'Last Meeting Date': pd.date_range(start='2022-12-01', periods=rows),
-                'Last Phone Call Date': pd.date_range(start='2003-01-06', periods=rows),
+                'Last Email Sent Date': pd.date_range(start='2023-01-01', periods=rows, freq='D'),
+                'Last Interaction Date': pd.date_range(start='2020-10-01', periods=rows, freq='D'),
+                'Last Meeting Date': pd.date_range(start='2022-12-01', periods=rows, freq='D'),
+                'Last Phone Call Date': pd.date_range(start='2003-01-06', periods=rows, freq='D'),
                 'Probability of Close': random.randint(0, 100)
             }
             data.append(row)
