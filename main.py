@@ -58,7 +58,7 @@ class VisualizationDashboard:
             ),
             dcc.Graph(
                 id='scatter-plot',
-                style={'width': '100%', 'height': '90%'}
+                style={'width': '100%', 'height': 'calc(100vh - 150px)'}
             )
         ])
 
@@ -543,8 +543,13 @@ def update_output(analyse_clicks, refresh_clicks, user_input):
 )
 def update_scatter_plot(x_column, y_column):
     fig = px.scatter(dashboard.data, x=x_column, y=y_column, size="Size", color="Continent",
-                     log_x=True, size_max=45, title="Scatter Plot")
-    fig.update_traces(marker=dict(sizemin=1))  # Set minimum size for markers
+                     log_x=True, size_max=21, title="Scatter Plot")
+    fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                      margin=dict(l=2, r=5, t=110, b=40),
+                                      xaxis=dict(showgrid=False, zeroline=False),
+                                      yaxis=dict(showgrid=False, zeroline=False) )
+        
+    fig.update_traces(marker=dict(sizemin=9))  # Set minimum size for markers
     return fig
 
 # Pie Chart Callback
@@ -562,7 +567,7 @@ def update_pie_chart(selected_category, selected_year):
     # Update layout
     title = f"World GDP Distribution by {selected_category.capitalize()}"
     fig.update_layout(title=title,
-                      margin=dict(t=50, b=10, l=10, r=10),
+                      margin=dict(t=10, b=10, l=10, r=10),
                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                       uniformtext_minsize=12, uniformtext_mode='hide')
 
@@ -577,6 +582,11 @@ def update_pie_chart(selected_category, selected_year):
 def update_graph(x_value, y_value):
     fig = px.line(dashboard.data, x=x_value, y=y_value, title='Time Series')
     fig.update_xaxes(rangeslider_visible=True)
+    fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=2, r=5, t=90, b=40),
+            xaxis=dict(showgrid=False, zeroline=False),
+            yaxis=dict(showgrid=False, zeroline=False)
+        )
     return fig
 
 # Bar Chart Callback
@@ -592,9 +602,9 @@ def update_bar_chart(selected_column, num_points):
 
     bar_chart = go.Bar(x=x, y=y, marker=dict(color='royalblue', opacity=0.7))
     layout = go.Layout(title=f'{selected_column} Distribution',
-                       xaxis=dict(title=selected_column),
-                       yaxis=dict(title='Count'))
-
+                       xaxis=dict(title=selected_column, showgrid=False, zeroline=False),
+                       yaxis=dict(title='Count', showgrid=False, zeroline=False),
+                       margin=dict(l=1, r=1, t=150, b=40))
     return {'data': [bar_chart], 'layout': layout}
 
 # Choropleth Callback
@@ -624,7 +634,10 @@ def update_choropleth(selected_columns):
                 labels={column: column}
             ).data[0])
 
-    fig.update_layout(autosize=True)
+    fig.update_layout(coloraxis_colorbar=dict(orientation='h'),
+                      margin=dict(l=1, r=1, t=150, b=0),
+                      xaxis=dict(showgrid=False, zeroline=False),
+                      yaxis=dict(showgrid=False, zeroline=False))
     return dcc.Graph(figure=fig)
 
 # Histogram Callback
@@ -639,8 +652,9 @@ def update_histogram(column, bins):
     histogram_data = [go.Histogram(x=x_data, nbinsx=bins, marker=dict(color='royalblue'))]
 
     layout = go.Layout(title=f'Histogram of {column}',
-                       xaxis=dict(title=column),
-                       yaxis=dict(title='Frequency'),
+                           xaxis=dict(title=column, showgrid=False, zeroline=False),
+                       yaxis=dict(title='Frequency', showgrid=False, zeroline=False),
+                       margin=dict(l=10, r=1, t=110, b=40),
                        bargap=0.05)
 
     explanation_text = f"The histogram above displays the distribution of {column.lower()} with {bins} bins."
