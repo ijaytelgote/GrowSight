@@ -362,13 +362,13 @@ def update_bubble_chart(start_date, end_date):
         ))
 
     layout = go.Layout(
-       
+       title='Sentiment Occurrences',
         xaxis=dict(title='Sentiment', showgrid=False),
         yaxis=dict(visible=False),
         showlegend=False,
         plot_bgcolor='#FFFFFF',  # Set background color
         paper_bgcolor='#f9f9f9',  # Set plot area background color
-        margin=dict(l=10, r=10, t=10, b=1)  # Add margin for better display
+        margin=dict(l=20, r=20, t=110, b=1)  # Add margin for better display
     )
 
     return {'data': data, 'layout': layout}
@@ -392,10 +392,10 @@ def update_graph(start_date, end_date):
     )
 
     layout = go.Layout(
-        title='Sentiment Analysis Over Time',
+     
         xaxis=dict(title='Timestamp', showgrid=False, zeroline=False),
         yaxis=dict( tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'],showgrid=False, zeroline=False),
-                       margin=dict(l=30, r=10, t=50, b=1))
+                       margin=dict(l=55, r=10, t=10, b=1))
     
 
     return {'data': [trace], 'layout': layout}
