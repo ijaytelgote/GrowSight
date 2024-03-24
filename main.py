@@ -395,7 +395,7 @@ def update_graph(start_date, end_date):
      
         xaxis=dict(title='Timestamp', showgrid=False, zeroline=False),
         yaxis=dict( tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'],showgrid=False, zeroline=False),
-                       margin=dict(l=55, r=10, t=10, b=1))
+                       margin=dict(l=55, r=1, t=1, b=1))
     
 
     return {'data': [trace], 'layout': layout}
@@ -436,7 +436,7 @@ def update_output(n_clicks, text, top_words):
     # Generate frequency plot
     df = px.bar(x=[word[0] for word in insight_result], y=[word[1] for word in insight_result], title=f'Top {top_words} Most Common Words')
     df.update_layout(plot_bgcolor='#f9f9f9', paper_bgcolor='#f9f9f9', font_color='#333333',
-                      margin=dict(t=5, b=5, l=5, r=5),
+                      margin=dict(t=50, b=5, l=1, r=2),
                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                       uniformtext_minsize=12, uniformtext_mode='hide')
 
