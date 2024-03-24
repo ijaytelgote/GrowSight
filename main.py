@@ -394,7 +394,7 @@ def update_graph(start_date, end_date):
         title='Sentiment Analysis Over Time',
         xaxis=dict(title='Timestamp', showgrid=False, zeroline=False),
         yaxis=dict( tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'],showgrid=False, zeroline=False),
-                       margin=dict(l=1, r=1, t=1, b=40))
+                       margin=dict(l=30, r=10, t=50, b=1))
     
 
     return {'data': [trace], 'layout': layout}
