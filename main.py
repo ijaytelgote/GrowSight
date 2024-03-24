@@ -27,7 +27,8 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from textblob import TextBlob
-
+nltk.download('punkt')
+nltk.download('stopwords')
 fake = Faker()
 
 class VisualizationDashboard:
@@ -361,13 +362,13 @@ def update_bubble_chart(start_date, end_date):
         ))
 
     layout = go.Layout(
-        title='Sentiment Occurrences',
+       
         xaxis=dict(title='Sentiment', showgrid=False),
         yaxis=dict(visible=False),
         showlegend=False,
         plot_bgcolor='#FFFFFF',  # Set background color
         paper_bgcolor='#f9f9f9',  # Set plot area background color
-        margin=dict(l=1, r=1, t=50, b=1)  # Add margin for better display
+        margin=dict(l=10, r=10, t=10, b=1)  # Add margin for better display
     )
 
     return {'data': data, 'layout': layout}
