@@ -381,28 +381,27 @@ def update_bubble_chart(start_date, end_date):
 )
 
 
-import plotly.graph_objs as go
 
 def update_graph(start_date, end_date):
     filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
     
+    # Define y-values based on sentiment
+    y_values = filtered_df['Sentiment'].apply(lambda x: {'Happy': 0.5, 'Neutral': 0, 'Sad': -0.5}[x])
+
     # Create plot
-    sentiment_mapping = {'Sad': -0.6, 'Neutral': 0, 'Happy': 0.6}
-    y_values = filtered_df['Sentiment'].map(sentiment_mapping)
-    
     trace = go.Scatter(
         x=filtered_df['Timestamp'],
         y=y_values,
-        mode='lines+markers',
-        name='Sentiment',
-        marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
+        mode='markers',
+        marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']],
+                    size=10)  # Adjust marker size for better visibility
     )
 
     layout = go.Layout(
         xaxis=dict(title='Timestamp', showgrid=False, zeroline=False),
         yaxis=dict(
-            tickvals=[-0.6, 0, 0.6],
-            ticktext=['Sad', 'Neutral', 'Happy'],
+            tickvals=[-0.5, 0, 0.5],  # Adjusted tick values
+            ticktext=['Sad', 'Neutral', 'Happy'],  # Adjusted tick labels
             showgrid=False,
             zeroline=False
         ),
@@ -410,6 +409,7 @@ def update_graph(start_date, end_date):
     )
 
     return {'data': [trace], 'layout': layout}
+
 
 
 
