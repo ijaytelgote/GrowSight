@@ -379,26 +379,38 @@ def update_bubble_chart(start_date, end_date):
     [Input('date-range-picker', 'start_date'),
      Input('date-range-picker', 'end_date')]
 )
+
+
+import plotly.graph_objs as go
+
 def update_graph(start_date, end_date):
     filtered_df = df[(df['Timestamp'] >= start_date) & (df['Timestamp'] <= end_date)]
     
     # Create plot
+    sentiment_mapping = {'Sad': -0.6, 'Neutral': 0, 'Happy': 0.6}
+    y_values = filtered_df['Sentiment'].map(sentiment_mapping)
+    
     trace = go.Scatter(
         x=filtered_df['Timestamp'],
-        y=filtered_df['Sentiment'].apply(lambda x: 1 if x == 'Happy' else (-1 if x == 'Sad' else 0)),
+        y=y_values,
         mode='lines+markers',
         name='Sentiment',
         marker=dict(color=['green' if x == 'Happy' else ('red' if x == 'Sad' else 'blue') for x in filtered_df['Sentiment']])
     )
 
     layout = go.Layout(
-     
         xaxis=dict(title='Timestamp', showgrid=False, zeroline=False),
-        yaxis=dict( tickvals=[-0.1, 0, 0.1], ticktext=['Sad', 'Neutral', 'Happy'],showgrid=False, zeroline=False),
-                       margin=dict(l=55, r=1, t=1, b=1))
-    
+        yaxis=dict(
+            tickvals=[-0.6, 0, 0.6],
+            ticktext=['Sad', 'Neutral', 'Happy'],
+            showgrid=False,
+            zeroline=False
+        ),
+        margin=dict(l=55, r=1, t=1, b=1)
+    )
 
     return {'data': [trace], 'layout': layout}
+
 
 
 
