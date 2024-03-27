@@ -368,7 +368,9 @@ def update_bubble_chart(start_date, end_date):
         showlegend=False,
         plot_bgcolor='#FFFFFF',  # Set background color
         paper_bgcolor='#f9f9f9',  # Set plot area background color
-        margin=dict(l=20, r=20, t=150, b=150)  # Add margin for better display
+
+        margin=dict(l=20, r=20, t=70, b=70),  # Add margin for better display
+        height=230  # Adjust the height of the plot area
     )
 
     return {'data': data, 'layout': layout}
