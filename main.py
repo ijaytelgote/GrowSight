@@ -394,7 +394,7 @@ def update_graph(start_date, end_date):
     layout = go.Layout(
      
         xaxis=dict(title='Timestamp', showgrid=False, zeroline=False),
-        yaxis=dict( tickvals=[-1, 0, 1], ticktext=['Sad', 'Neutral', 'Happy'],showgrid=False, zeroline=False),
+        yaxis=dict( tickvals=[-0.5, 0, 0.5], ticktext=['Sad', 'Neutral', 'Happy'],showgrid=False, zeroline=False),
                        margin=dict(l=55, r=1, t=1, b=1))
     
 
