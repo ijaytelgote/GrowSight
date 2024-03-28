@@ -662,6 +662,6 @@ def update_histogram(column, bins):
     return {'data': histogram_data, 'layout': layout}, explanation_text
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 
